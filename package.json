@@ -1,0 +1,52 @@
+{
+  "name": "magpie-middleware-prompt-override",
+  "version": "1.0.0",
+  "description": "Magpie 系统提示词替换中间件：四种协议、按调用方选择生效范围、中英双语设置页 / System-prompt override middleware for Magpie with per-caller scoping and a bilingual settings page",
+  "type": "module",
+  "files": [
+    "prompt-override.middleware.js",
+    "page/",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "tools/"
+  ],
+  "scripts": {
+    "test": "node --test test/middleware.test.mjs",
+    "build": "node tools/build-page.mjs"
+  },
+  "keywords": [
+    "magpie",
+    "magpie-middleware",
+    "system-prompt",
+    "llm-gateway",
+    "i18n",
+    "my-work"
+  ],
+  "license": "MIT",
+  "magpie": {
+    "middleware": "./prompt-override.middleware.js",
+    "page": {
+      "title": "Prompt override",
+      "titles": {
+        "en": "Prompt override",
+        "zh": "提示词替换",
+        "zh-TW": "提示詞替換",
+        "ja": "プロンプト置換",
+        "de": "Prompt ersetzen"
+      },
+      "file": "page/index.html",
+      "icon": "page/icon.svg"
+    },
+    "options": {
+      "enabled": false,
+      "system_prompt": "",
+      "mode": "replace",
+      "replace_reminders": true,
+      "scope": "all",
+      "targets": [],
+      "rules": [],
+      "debug": false
+    }
+  }
+}

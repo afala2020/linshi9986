@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>提示词替换</title>
+<style>
+/*INLINE_CSS*/
+</style>
+<script src="boot.js" defer></script>
+<script src="_magpie/bridge.js" defer></script>
+<script src="page.js" defer></script>
+</head>
+<body>
+<div id="boot-hint" class="boot-hint" role="alert"><span data-t="boot">页面脚本没有加载成功。刷新一次（Ctrl+R）通常即可恢复。</span></div>
+<main class="workspace">
+  <header class="page-header">
+    <div class="title-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6.5 5.5h8l3 3v10h-11v-13Z"/><path d="M14.5 5.5v3h3M9 12h6M9 15h4"/></svg></div>
+    <div><h1 data-t="h1">提示词替换</h1><p class="intro" data-t="intro">设置网关如何处理发往模型的系统提示词，并选择对哪些软件生效。</p></div>
+    <button type="button" id="lang" class="lang-switch" title="切换语言 / Switch language">EN</button>
+  </header>
+
+  <div class="notice" role="note"><span class="notice-icon" aria-hidden="true">!</span><div><strong data-t="notice.title">整体替换会影响 Agent 的行为</strong><p data-t="notice.body">原系统提示词中可能包含工具调用和工作方式的说明。可以先选「追加」验证链路，再决定是否整段替换。</p></div></div>
+
+  <form id="form" autocomplete="off">
+    <section class="panel" aria-labelledby="content-title">
+      <div class="section-heading"><div><h2 id="content-title" data-t="sec.content">替换内容</h2><p data-t="sec.content.p">填写要使用的系统提示词。</p></div><span class="section-tag" id="mode-tag">替换</span></div>
+      <div class="panel-body">
+        <label class="field">
+          <span class="label" data-t="label.preset">选择人格</span>
+          <select id="preset"><option value="" data-t="preset.auto">自定义提示词</option></select>
+          <small class="field-hint" id="preset-hint" data-t="preset.hint">选择后会填入下方，可继续编辑；点击「保存设置」后生效。</small>
+        </label>
+        <label class="field">
+          <span class="label" data-t="label.prompt">提示词</span>
+          <textarea id="prompt" rows="8" spellcheck="false" data-t-ph="prompt.ph" placeholder="在这里输入要使用的提示词…"></textarea>
+          <small class="field-hint" data-t="prompt.hint">「删除」模式不需要填写；其余模式留空则本条不生效。</small>
+        </label>
+        <label class="field last-field">
+          <span class="label" data-t="label.mode">处理方式</span>
+          <select id="mode">
+            <option value="replace" data-t="mode.replace">替换：整段换成上面的提示词</option>
+            <option value="append" data-t="mode.append">追加：接在原系统提示词后面</option>
+            <option value="prepend" data-t="mode.prepend">前置：放在原系统提示词前面</option>
+            <option value="strip" data-t="mode.strip">删除：清空原系统提示词</option>
+          </select>
+          <small class="field-hint" data-t="mode.hint">拿不准先用「追加」：原提示词还在，只多一段你的，能立刻看出有没有生效。</small>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="scope-title">
+      <div class="section-heading"><div><h2 id="scope-title" data-t="sec.scope">生效范围</h2><p data-t="sec.scope.p">magpie 对每个请求都记了调用方和上游，这里按它们挑。</p></div><span class="section-tag" id="scope-tag">全部软件</span></div>
+      <div class="panel-body">
+        <label class="field">
+          <span class="label" data-t="label.scope">换哪些软件</span>
+          <select id="scope">
+            <option value="all" data-t="scope.all">所有接入 magpie 的软件</option>
+            <option value="selected" data-t="scope.selected">只有下面列出的软件</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="label"><span data-t="label.targets">目标</span><span class="optional" data-t="optional.perLine">每行一条</span></span>
+          <textarea id="targets" rows="5" spellcheck="false" placeholder="codex&#10;agent:claude-desktop&#10;provider:trae-cn&#10;!agent:magpie"></textarea>
+          <small class="field-hint" data-t-html="targets.hint">不写前缀就是调用方。<code>agent:</code> 调用方、<code>provider:</code> 上游、<code>protocol:</code> 协议、<code>app:</code> 应用、<code>model:</code> 模型；<code>*</code> 通配，行首 <code>!</code> 排除；只写排除项表示「除了这些，其余都换」。</small>
+        </label>
+        <div class="chips" id="chips"></div>
+        <label class="mini-check"><input id="debug" type="checkbox"><span><span data-t-html="label.debug">把新出现的调用方写进 <code>logs/app.log</code></span><small data-t-html="debug.hint">不知道某个软件叫什么，就打开它发一次消息，再看日志里的 <code>[prompt-override] caller</code>。</small></span></label>
+      </div>
+    </section>
+
+    <details class="panel" id="advanced">
+      <summary><span data-t="adv.summary">单独设置某些软件</span><small data-t="adv.summary.small">可选：给某个客户端配另一套提示词或另一种处理方式</small></summary>
+      <div class="panel-body">
+        <label class="field last-field">
+          <span class="label"><span data-t="label.rules">规则</span><span class="optional" data-t="optional.json">JSON 数组</span></span>
+          <textarea id="rules" rows="8" spellcheck="false" placeholder='[{"match":["codex"],"mode":"append","prompt":"只用中文回答"}]'></textarea>
+          <small class="field-hint" data-t-html="rules.hint">命中第一条就用它，优先于上面的整体设置；每条可写 <code>match</code>（选择器数组）、<code>mode</code>、<code>prompt</code>、<code>replace_reminders</code>。留空表示不单独设置。</small>
+        </label>
+        <div class="row-actions"><button type="button" id="rules-sample" data-t="rules.sample">插入示例</button><span id="rules-hint" class="field-hint"></span></div>
+      </div>
+    </details>
+
+    <div class="save-bar">
+      <label class="enable-control"><input id="enabled" type="checkbox"><span class="switch" aria-hidden="true"></span><span><strong data-t="enable.strong">启用提示词处理</strong><small data-t="enable.small">开启后对支持的网关请求生效</small></span></label>
+      <div class="actions"><span id="status" role="status" aria-live="polite"></span><button type="button" id="reload" data-t="btn.reload">重新读取</button><button type="button" id="save" data-t="btn.save">保存设置</button></div>
+    </div>
+  </form>
+  <section id="current" class="current" hidden><h2 data-t="current.title">当前已保存的设置</h2><pre id="current-body"></pre></section>
+</main>
+</body>
+</html>
